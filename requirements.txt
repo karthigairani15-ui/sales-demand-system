@@ -1,0 +1,15 @@
+# Core Data & ML
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.4.2
+joblib==1.4.2
+
+# API
+flask==3.0.3
+
+# Notebook
+jupyter==1.0.0
+ipykernel==6.29.4
+
+# Utilities
+python-dateutil==2.9.0
