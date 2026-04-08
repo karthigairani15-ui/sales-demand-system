@@ -178,7 +178,4 @@ git push -u origin main
 
 ---
 
-## 👩‍💻 Author
-Built with ❤️ as an internship-ready ML project.
-Save → Ctrl + S
 
