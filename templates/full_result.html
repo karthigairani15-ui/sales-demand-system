@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Full Pipeline — DemandIQ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚙️</span>
+        <div>
+          <h1 class="logo-title">Full Pipeline</h1>
+          <p class="logo-sub">Predict → Produce → Sell → Report</p>
+        </div>
+      </div>
+      <a href="/" class="btn btn-outline">← New Prediction</a>
+    </div>
+  </header>
+
+  <main class="results-wrapper">
+
+    <section class="pipeline-steps">
+      <div class="step-pill step-done">1 Predict</div>
+      <div class="step-arrow">→</div>
+      <div class="step-pill step-done">2 Production</div>
+      <div class="step-arrow">→</div>
+      <div class="step-pill step-done">3 Inventory</div>
+      <div class="step-arrow">→</div>
+      <div class="step-pill step-done">4 POS</div>
+      <div class="step-arrow">→</div>
+      <div class="step-pill step-done">5 Consumption</div>
+      <div class="step-arrow">→</div>
+      <div class="step-pill step-done">6 Waste</div>
+      <div class="step-arrow">→</div>
+      <div class="step-pill step-done">7 Loss</div>
+    </section>
+
+    <section class="context-bar">
+      <h2 class="context-title">Run Context</h2>
+      <div class="context-chips">
+        <span class="chip">🌤 {{ context.weather_type }}</span>
+        <span class="chip">📍 {{ context.location_type }}</span>
+        <span class="chip">⏰ {{ context.time_slot }}</span>
+        {% if context.festival != 'None' %}<span class="chip chip-highlight">🎉 {{ context.festival }}</span>{% endif %}
+        {% if context.special_event != 'None' %}<span class="chip chip-highlight">🏆 {{ context.special_event }}</span>{% endif %}
+        {% if context.is_offer %}<span class="chip chip-purple">🏷 Offer Active</span>{% endif %}
+      </div>
+    </section>
+
+    <!-- STEP 1: PREDICTIONS — list of {item, predicted_sales} -->
+    <section class="pipeline-section">
+      <div class="pipe-heading">
+        <span class="pipe-num">01</span>
+        <div><h2>Sales Predictions</h2><p>ML model output for each food item</p></div>
+      </div>
+      <div class="table-wrap">
+        <table class="pred-table">
+          <thead><tr><th>Item</th><th>Predicted Sales (units)</th></tr></thead>
+          <tbody>
+            {% for row in predictions %}
+            <tr>
+              <td>{% if row.item=='Biryani' %}🍛{% elif row.item=='Meals' %}🍱{% elif row.item=='Parotta' %}🫓{% elif row.item=='Noodles' %}🍜{% elif row.item=='Dosa' %}🫔{% endif %} {{ row.item }}</td>
+              <td><strong>{{ row.predicted_sales }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- STEP 2: PRODUCTION — list of {item, predicted_sales, buffer_percent, production_qty} -->
+    <section class="pipeline-section">
+      <div class="pipe-heading">
+        <span class="pipe-num">02</span>
+        <div><h2>Production Plan</h2><p>Predicted demand + 10–20% safety buffer</p></div>
+      </div>
+      <div class="table-wrap">
+        <table class="pred-table">
+          <thead><tr><th>Item</th><th>Predicted</th><th>Buffer %</th><th>Produce (units)</th></tr></thead>
+          <tbody>
+            {% for row in production_plan %}
+            <tr>
+              <td>{% if row.item=='Biryani' %}🍛{% elif row.item=='Meals' %}🍱{% elif row.item=='Parotta' %}🫓{% elif row.item=='Noodles' %}🍜{% elif row.item=='Dosa' %}🫔{% endif %} {{ row.item }}</td>
+              <td>{{ row.predicted_sales }}</td>
+              <td>{{ row.buffer_percent }}%</td>
+              <td><strong>{{ row.production_qty }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- STEP 3: INVENTORY — dict of {item_name: remaining_int} -->
+    <section class="pipeline-section">
+      <div class="pipe-heading">
+        <span class="pipe-num">03</span>
+        <div><h2>Inventory Status</h2><p>Remaining stock after POS sales</p></div>
+      </div>
+      <div class="table-wrap">
+        <table class="pred-table">
+          <thead><tr><th>Item</th><th>Remaining Stock (units)</th></tr></thead>
+          <tbody>
+            {% for item_name, qty in inventory.items() %}
+            <tr>
+              <td>{% if item_name=='Biryani' %}🍛{% elif item_name=='Meals' %}🍱{% elif item_name=='Parotta' %}🫓{% elif item_name=='Noodles' %}🍜{% elif item_name=='Dosa' %}🫔{% endif %} {{ item_name }}</td>
+              <td>{{ qty }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- STEP 4: CONSUMPTION — list of lists [item, qty, timestamp, location, slot, weather, is_offer] -->
+    <section class="pipeline-section">
+      <div class="pipe-heading">
+        <span class="pipe-num">04</span>
+        <div><h2>Consumption Summary</h2><p>POS records — what was sold and when</p></div>
+      </div>
+      <div class="table-wrap">
+        <table class="pred-table">
+          <thead>
+            <tr><th>Item</th><th>Qty Sold</th><th>Timestamp</th><th>Location</th><th>Slot</th><th>Weather</th></tr>
+          </thead>
+          <tbody>
+            {% for row in consumption_summary %}
+            <tr>
+              <td>{% if row[0]=='Biryani' %}🍛{% elif row[0]=='Meals' %}🍱{% elif row[0]=='Parotta' %}🫓{% elif row[0]=='Noodles' %}🍜{% elif row[0]=='Dosa' %}🫔{% endif %} {{ row[0] }}</td>
+              <td><strong>{{ row[1] }}</strong></td>
+              <td style="font-size:0.78rem;color:var(--muted)">{{ row[2] }}</td>
+              <td>{{ row[3] }}</td>
+              <td>{{ row[4] }}</td>
+              <td>{{ row[5] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- STEP 5: WASTE — list of {item, produced, sold, waste, waste_pct, status} -->
+    <section class="pipeline-section">
+      <div class="pipe-heading">
+        <span class="pipe-num">05</span>
+        <div><h2>Waste Summary</h2><p>Produced − Sold = Wasted</p></div>
+      </div>
+      <div class="table-wrap">
+        <table class="pred-table">
+          <thead>
+            <tr><th>Item</th><th>Produced</th><th>Sold</th><th>Wasted</th><th>Waste %</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for row in waste_summary %}
+            <tr>
+              <td>{% if row.item=='Biryani' %}🍛{% elif row.item=='Meals' %}🍱{% elif row.item=='Parotta' %}🫓{% elif row.item=='Noodles' %}🍜{% elif row.item=='Dosa' %}🫔{% endif %} {{ row.item }}</td>
+              <td>{{ row.produced }}</td>
+              <td>{{ row.sold }}</td>
+              <td class="waste-cell">{{ row.waste }}</td>
+              <td>{{ row.waste_pct }}%</td>
+              <td>{{ row.status }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- STEP 6: LOSS — {total_loss, severity, currency, loss_records:[{item,waste_qty,cost,loss}]} -->
+    <section class="pipeline-section pipeline-section-last">
+      <div class="pipe-heading">
+        <span class="pipe-num loss-num">06</span>
+        <div><h2>Loss Report</h2><p>Waste units × item cost = financial loss</p></div>
+      </div>
+      <div class="severity-banner">
+        <span>{{ loss_report.severity }}</span>
+        <span>Total Loss: ₹{{ loss_report.total_loss }}</span>
+      </div>
+      <div class="table-wrap">
+        <table class="pred-table">
+          <thead>
+            <tr><th>Item</th><th>Waste Units</th><th>Cost / Unit (₹)</th><th>Loss (₹)</th></tr>
+          </thead>
+          <tbody>
+            {% for rec in loss_report.loss_records %}
+            <tr>
+              <td>{% if rec.item=='Biryani' %}🍛{% elif rec.item=='Meals' %}🍱{% elif rec.item=='Parotta' %}🫓{% elif rec.item=='Noodles' %}🍜{% elif rec.item=='Dosa' %}🫔{% endif %} {{ rec.item }}</td>
+              <td>{{ rec.waste_qty }}</td>
+              <td>₹{{ rec.cost }}</td>
+              <td class="loss-cell">₹{{ rec.loss }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3"><strong>💸 Total Loss</strong></td>
+              <td class="loss-cell"><strong>₹{{ loss_report.total_loss }}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <div class="cta-row">
+      <a href="/" class="btn btn-primary">← Run New Prediction</a>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>DemandIQ &mdash; AI-powered food sales demand prediction</p>
+  </footer>
+
+</body>
+</html>

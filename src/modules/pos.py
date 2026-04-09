@@ -36,7 +36,7 @@ def simulate_sales(inventory, context):
 
     for item, stock in inventory.items():
         # Simulate 80-95% of stock being sold
-        sell_ratio = random.uniform(0.80, 0.95)
+        sell_ratio = random.uniform(0.93, 0.97)
         sold_qty   = round(stock * sell_ratio)
         sold_qty   = max(0, min(sold_qty, stock))
 
