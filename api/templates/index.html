@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Demand Prediction System</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="brand">🍽️ Sales<span>Predict</span></div>
+  <span class="nav-badge">ML Powered</span>
+</nav>
+
+<div class="container">
+
+  <!-- ALERT -->
+  <div class="alert alert-error" id="alert-error"></div>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <div class="card-title">
+      <div class="icon icon-blue">🎯</div>
+      Demand Prediction Input
+    </div>
+
+    <!-- MODE TOGGLE -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btn-auto"   onclick="setMode('auto')">🗓️ Auto (Date-Based)</button>
+      <button class="mode-btn"        id="btn-manual" onclick="setMode('manual')">✏️ Manual</button>
+    </div>
+
+    <!-- AUTO MODE -->
+    <div id="auto-section">
+      <div class="auto-info">
+        ℹ️ Enter a date — the system will automatically detect weekend, festival, weather, and location type.
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>📅 Date</label>
+          <input type="date" id="input-date" onchange="detectFromDate()"/>
+        </div>
+        <div class="form-group">
+          <label>⏰ Time Slot</label>
+          <select id="auto-timeslot">
+            <option value="Lunch">Lunch</option>
+            <option value="Dinner">Dinner</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>💰 Offer Active</label>
+          <select id="auto-offer">
+            <option value="0">No Offer</option>
+            <option value="1">Offer Active</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>📍 Location</label>
+          <select id="auto-location">
+            <option value="Office_Area">Office Area</option>
+            <option value="Residential">Residential</option>
+            <option value="College">College</option>
+            <option value="Market">Market</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- DETECTED VALUES -->
+      <div id="detected-section" style="display:none">
+        <div class="card-title" style="font-size:13px; margin-bottom:12px;">
+          ✅ Auto-Detected Values
+        </div>
+        <div class="detected-row" id="detected-badges"></div>
+      </div>
+    </div>
+
+    <!-- MANUAL MODE -->
+    <div id="manual-section" style="display:none">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>🌦️ Weather</label>
+          <select id="m-weather">
+            <option>Sunny</option>
+            <option>Rainy</option>
+            <option>Cloudy</option>
+            <option>Windy</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>📍 Location</label>
+          <select id="m-location">
+            <option value="Office_Area">Office Area</option>
+            <option value="Residential">Residential</option>
+            <option value="College">College</option>
+            <option value="Market">Market</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>⏰ Time Slot</label>
+          <select id="m-timeslot">
+            <option>Lunch</option>
+            <option>Dinner</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>🎉 Festival</label>
+          <select id="m-festival">
+            <option>None</option>
+            <option>Pongal</option>
+            <option>Diwali</option>
+            <option>Christmas</option>
+            <option>New Year</option>
+            <option>Eid</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>🏆 Special Event</label>
+          <select id="m-event">
+            <option>None</option>
+            <option value="Cricket Match">Cricket Match</option>
+            <option value="Local Festival">Local Festival</option>
+            <option value="College Event">College Event</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>📅 Day Type</label>
+          <select id="m-weekend">
+            <option value="0">Weekday</option>
+            <option value="1">Weekend</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>🍖 Non-Veg Day</label>
+          <select id="m-nonveg">
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>💰 Offer Active</label>
+          <select id="m-offer">
+            <option value="0">No Offer</option>
+            <option value="1">Offer Active</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>📈 Prev Day Sales</label>
+          <input type="number" id="m-prevsales" value="90" min="0"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <button class="btn-predict" onclick="runPrediction()">
+      🚀 Predict Demand
+    </button>
+  </div>
+
+  <!-- LOADER -->
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    Running prediction pipeline...
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+
+    <!-- STATS ROW -->
+    <div class="stats-row">
+      <div class="stat-card blue">
+        <div class="stat-value" id="stat-total-pred">—</div>
+        <div class="stat-label">Total Predicted</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-value" id="stat-total-prod">—</div>
+        <div class="stat-label">Total Production</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-value" id="stat-total-waste">—</div>
+        <div class="stat-label">Total Waste</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-value" id="stat-total-loss">—</div>
+        <div class="stat-label">Total Loss (₹)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-waste-pct">—</div>
+        <div class="stat-label">Waste %</div>
+      </div>
+    </div>
+
+    <!-- PREDICTIONS TABLE -->
+    <div class="card">
+      <div class="card-title">
+        <div class="icon icon-blue">📊</div>
+        Sales Predictions
+        <div class="mult-row" id="mult-row"></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Food Item</th>
+              <th>Predicted Sales</th>
+              <th>Production Qty</th>
+              <th>Buffer %</th>
+              <th>Demand Level</th>
+            </tr>
+          </thead>
+          <tbody id="pred-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- INVENTORY TABLE -->
+    <div class="card">
+      <div class="card-title">
+        <div class="icon icon-green">🏪</div>
+        Inventory After Sales
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Food Item</th>
+              <th>Produced</th>
+              <th>Sold</th>
+              <th>Remaining</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="inv-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- WASTE TABLE -->
+    <div class="card">
+      <div class="card-title">
+        <div class="icon icon-amber">🗑️</div>
+        Waste Summary
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Food Item</th>
+              <th>Produced</th>
+              <th>Sold</th>
+              <th>Waste Units</th>
+              <th>Waste %</th>
+              <th>Visual</th>
+            </tr>
+          </thead>
+          <tbody id="waste-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LOSS TABLE -->
+    <div class="card">
+      <div class="card-title">
+        <div class="icon icon-red">💸</div>
+        Loss Report
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Food Item</th>
+              <th>Waste Qty</th>
+              <th>Cost per Unit (₹)</th>
+              <th>Loss (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="loss-tbody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:16px; padding-top:16px; border-top:2px solid #f0f2f5; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:14px; color:#666;">Total Loss Severity</span>
+        <span id="loss-severity" class="severity-acceptable">—</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// FESTIVAL DICTIONARY
+// ============================================================
+const FESTIVALS = {
+  "01-01": "New Year",
+  "01-14": "Pongal",
+  "01-15": "Pongal",
+  "01-26": "None",
+  "03-08": "None",
+  "04-14": "None",
+  "08-15": "None",
+  "10-02": "None",
+  "10-24": "Diwali",
+  "10-25": "Diwali",
+  "10-26": "Diwali",
+  "11-01": "None",
+  "11-14": "None",
+  "12-25": "Christmas",
+  "12-31": "New Year",
+};
+
+// ============================================================
+// WEATHER MOCK (by month)
+// ============================================================
+const MONTH_WEATHER = {
+  1:  "Cloudy", 2:  "Sunny",  3:  "Sunny",
+  4:  "Sunny",  5:  "Windy",  6:  "Rainy",
+  7:  "Rainy",  8:  "Rainy",  9:  "Cloudy",
+  10: "Cloudy", 11: "Cloudy", 12: "Windy"
+};
+
+// ============================================================
+// MODE TOGGLE
+// ============================================================
+let currentMode = "auto";
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById("auto-section").style.display   = mode === "auto"   ? "block" : "none";
+  document.getElementById("manual-section").style.display = mode === "manual" ? "block" : "none";
+  document.getElementById("btn-auto").classList.toggle("active",   mode === "auto");
+  document.getElementById("btn-manual").classList.toggle("active", mode === "manual");
+}
+
+// ============================================================
+// DATE → AUTO DETECT
+// ============================================================
+function detectFromDate() {
+  const val = document.getElementById("input-date").value;
+  if (!val) return;
+
+  const date     = new Date(val);
+  const day      = date.getDay();
+  const month    = date.getMonth() + 1;
+  const mmdd     = val.slice(5);
+  const isWeekend = (day === 0 || day === 6) ? 1 : 0;
+  const festival  = FESTIVALS[mmdd] || "None";
+  const weather   = MONTH_WEATHER[month] || "Sunny";
+
+  const dayNames  = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const nonveg    = [1,3].includes(day) ? 0 : 1; // Mon=1,Thu=4 restriction days
+
+  // Show badges
+  const section = document.getElementById("detected-section");
+  section.style.display = "block";
+
+  const badges = [
+    { label: `📅 ${dayNames[day]}`,           cls: "badge-blue"   },
+    { label: isWeekend ? "🎉 Weekend" : "💼 Weekday", cls: isWeekend ? "badge-purple" : "badge-blue" },
+    { label: `🌦️ ${weather}`,                 cls: "badge-blue"   },
+    { label: `🎊 ${festival}`,                cls: festival !== "None" ? "badge-red" : "badge-green" },
+    { label: nonveg ? "🍖 Non-Veg Day" : "🥗 Veg Day", cls: nonveg ? "badge-amber" : "badge-green" },
+  ];
+
+  document.getElementById("detected-badges").innerHTML = badges
+    .map(b => `<span class="badge ${b.cls}">${b.label}</span>`)
+    .join("");
+}
+
+// ============================================================
+// BUILD PAYLOAD
+// ============================================================
+function buildPayload() {
+  if (currentMode === "auto") {
+    const val = document.getElementById("input-date").value;
+    if (!val) { showError("Please select a date."); return null; }
+
+    const date      = new Date(val);
+    const day       = date.getDay();
+    const month     = date.getMonth() + 1;
+    const mmdd      = val.slice(5);
+    const isWeekend  = (day === 0 || day === 6) ? 1 : 0;
+    const festival   = FESTIVALS[mmdd] || "None";
+    const weather    = MONTH_WEATHER[month] || "Sunny";
+    const nonveg     = [1, 4].includes(day) ? 0 : 1;
+    const isFestival = festival !== "None" ? 1 : 0;
+
+    return {
+      weather_type:        weather,
+      location_type:       document.getElementById("auto-location").value,
+      time_slot:           document.getElementById("auto-timeslot").value,
+      festival:            festival,
+      special_event:       "None",
+      is_weekend:          isWeekend,
+      is_festival:         isFestival,
+      is_nonveg_day:       nonveg,
+      is_special_event:    0,
+      is_offer:            parseInt(document.getElementById("auto-offer").value),
+      previous_day_sales:  90
+    };
+  } else {
+    return {
+      weather_type:        document.getElementById("m-weather").value,
+      location_type:       document.getElementById("m-location").value,
+      time_slot:           document.getElementById("m-timeslot").value,
+      festival:            document.getElementById("m-festival").value,
+      special_event:       document.getElementById("m-event").value,
+      is_weekend:          parseInt(document.getElementById("m-weekend").value),
+      is_festival:         document.getElementById("m-festival").value !== "None" ? 1 : 0,
+      is_nonveg_day:       parseInt(document.getElementById("m-nonveg").value),
+      is_special_event:    document.getElementById("m-event").value !== "None" ? 1 : 0,
+      is_offer:            parseInt(document.getElementById("m-offer").value),
+      previous_day_sales:  parseFloat(document.getElementById("m-prevsales").value) || 0
+    };
+  }
+}
+
+// ============================================================
+// RUN PREDICTION
+// ============================================================
+async function runPrediction() {
+  hideError();
+  const payload = buildPayload();
+  if (!payload) return;
+
+  document.getElementById("loader").style.display  = "block";
+  document.getElementById("results").style.display = "none";
+
+  try {
+    const res  = await fetch("/full-pipeline", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.status === "error") { showError(data.message); return; }
+
+    renderResults(data);
+  } catch (e) {
+    showError("Connection error: " + e.message);
+  } finally {
+    document.getElementById("loader").style.display = "none";
+  }
+}
+
+// ============================================================
+// RENDER RESULTS
+// ============================================================
+function renderResults(data) {
+  const preds      = data.predictions      || [];
+  const plan       = data.production_plan  || [];
+  const inv        = data.inventory        || {};
+  const wasteRecs  = data.waste_summary?.records || [];
+  const lossRecs   = data.loss_report?.loss_records || [];
+  const mults      = data.multipliers      || {};
+
+  // ── STATS ──
+  const totalPred  = preds.reduce((s,r) => s + r.predicted_sales, 0);
+  const totalProd  = plan.reduce((s,r)  => s + r.production_qty,  0);
+  const totalWaste = data.waste_summary?.total_waste  || 0;
+  const totalLoss  = data.loss_report?.total_loss     || 0;
+  const wastePct   = data.waste_summary?.overall_waste_pct || 0;
+
+  document.getElementById("stat-total-pred").textContent  = totalPred;
+  document.getElementById("stat-total-prod").textContent  = totalProd;
+  document.getElementById("stat-total-waste").textContent = totalWaste;
+  document.getElementById("stat-total-loss").textContent  = "₹" + totalLoss;
+  document.getElementById("stat-waste-pct").textContent   = wastePct + "%";
+
+  // ── MULTIPLIERS ──
+  const multHTML = Object.entries(mults).map(([k,v]) =>
+    `<span class="mult-chip">${k}: <span>${v}x</span></span>`
+  ).join("");
+  document.getElementById("mult-row").innerHTML = multHTML;
+
+  // ── PREDICTIONS TABLE ──
+  const planMap = {};
+  plan.forEach(p => planMap[p.item] = p);
+
+  const maxPred = Math.max(...preds.map(p => p.predicted_sales));
+  document.getElementById("pred-tbody").innerHTML = preds.map(p => {
+    const pp    = planMap[p.item] || {};
+    const pct   = Math.round((p.predicted_sales / maxPred) * 100);
+    const level = pct > 80 ? "🔴 High" : pct > 50 ? "🟡 Medium" : "🟢 Normal";
+    return `<tr>
+      <td>${p.item}</td>
+      <td><strong>${p.predicted_sales}</strong> units</td>
+      <td>${pp.production_qty || "—"} units</td>
+      <td>${pp.buffer_percent || "—"}%</td>
+      <td>${level}</td>
+    </tr>`;
+  }).join("");
+
+  // ── INVENTORY TABLE ──
+  const posMap = {};
+  (data.consumption?.consumption || []).forEach(r => posMap[r[0]] = r[1]);
+
+  document.getElementById("inv-tbody").innerHTML = Object.entries(inv).map(([item, rem]) => {
+    const produced = planMap[item]?.production_qty || 0;
+    const sold     = posMap[item] || 0;
+    const status   = rem === 0
+      ? '<span class="waste-high">Out of Stock</span>'
+      : rem < 10
+      ? '<span class="waste-medium">Low Stock</span>'
+      : '<span class="waste-low">OK</span>';
+    return `<tr>
+      <td>${item}</td>
+      <td>${produced}</td>
+      <td>${sold}</td>
+      <td><strong>${rem}</strong></td>
+      <td>${status}</td>
+    </tr>`;
+  }).join("");
+
+  // ── WASTE TABLE ──
+  document.getElementById("waste-tbody").innerHTML = wasteRecs.map(r => {
+    const cls  = r.waste_pct < 10 ? "waste-low" : r.waste_pct < 20 ? "waste-medium" : "waste-high";
+    const fill = r.waste_pct < 10 ? "fill-green" : r.waste_pct < 20 ? "fill-amber" : "fill-red";
+    return `<tr>
+      <td>${r.item}</td>
+      <td>${r.produced}</td>
+      <td>${r.sold}</td>
+      <td><span class="${cls}">${r.waste}</span></td>
+      <td><span class="${cls}">${r.waste_pct}%</span></td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-fill ${fill}" style="width:${Math.min(r.waste_pct * 3, 100)}%"></div>
+          </div>
+          <span style="font-size:11px;color:#888;min-width:30px">${r.waste_pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+
+  // ── LOSS TABLE ──
+  const COSTS = {Biryani:120, Meals:80, Parotta:50, Noodles:70, Dosa:40};
+  document.getElementById("loss-tbody").innerHTML = lossRecs.map(r => {
+    return `<tr>
+      <td>${r.item}</td>
+      <td>${r.waste_qty}</td>
+      <td>₹${r.cost}</td>
+      <td><strong>₹${r.loss}</strong></td>
+    </tr>`;
+  }).join("");
+
+  // ── SEVERITY ──
+  const sev = data.loss_report?.severity || "";
+  const sevEl = document.getElementById("loss-severity");
+  sevEl.textContent = sev.replace(/[^\w\s₹]/g, "").trim() || sev;
+  sevEl.className   = totalLoss < 500 ? "severity-acceptable" :
+                      totalLoss < 1500 ? "severity-moderate" : "severity-high";
+
+  document.getElementById("results").style.display = "block";
+  document.getElementById("results").scrollIntoView({ behavior: "smooth" });
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function showError(msg) {
+  const el = document.getElementById("alert-error");
+  el.textContent = "⚠️ " + msg;
+  el.style.display = "block";
+  document.getElementById("loader").style.display = "none";
+}
+function hideError() {
+  document.getElementById("alert-error").style.display = "none";
+}
+
+// Set today's date by default
+document.getElementById("input-date").value = new Date().toISOString().split("T")[0];
+detectFromDate();
+</script>
+</body>
+</html>
