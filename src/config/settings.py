@@ -1,6 +1,6 @@
 # =============================================================
 # settings.py — Central Configuration for Sales Demand System
-# FIX: Reduced production buffer to 2–5% (was 10–20%)
+# FIX: Reduced production buffer to 2–5% 
 #      Combined with pos.py sell ratio fix (93–97%),
 #      this brings waste and loss to acceptable levels.
 # =============================================================
@@ -70,8 +70,8 @@ SPECIAL_EVENTS = ["Cricket Match", "Local Festival", "College Event", "None"]
 #   Waste = 122–126 - 113–122 = 0–13 units (avg ~5)
 #   vs OLD: waste was 16–29 units per item
 # -------------------------------------------------------------
-PRODUCTION_BUFFER_MIN = 0.02   # was 0.10
-PRODUCTION_BUFFER_MAX = 0.05   # was 0.20
+PRODUCTION_BUFFER_MIN = 0.02   
+PRODUCTION_BUFFER_MAX = 0.05   
 
 # -------------------------------------------------------------
 # MODEL SETTINGS

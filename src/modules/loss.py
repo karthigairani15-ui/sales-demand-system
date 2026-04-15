@@ -72,7 +72,7 @@ def generate_loss_report(loss_records):
 
     severity = (
         "🟢 Acceptable" if total_loss < 500  else
-        "🟡 Moderate"   if total_loss < 1500 else
+        "🟡 Moderate"   if total_loss < 7000 else
         "🔴 High Loss"
     )
     print(f"   Severity  : {severity}")
