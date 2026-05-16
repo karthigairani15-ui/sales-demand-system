@@ -64,10 +64,7 @@ def generate_production_plan(predictions):
     for pred in predictions:
         item           = pred["item"]
         predicted      = pred["predicted_sales"]
-        buffer         = random.uniform(
-            PRODUCTION_BUFFER_MIN,
-            PRODUCTION_BUFFER_MAX
-        )
+        buffer = (PRODUCTION_BUFFER_MIN + PRODUCTION_BUFFER_MAX) / 2
         produce_qty    = round(predicted * (1 + buffer))
 
         record = {
